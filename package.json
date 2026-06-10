@@ -1,0 +1,17 @@
+{
+  "name": "netspeed-backend",
+  "version": "1.0.0",
+  "description": "Speedtest backend API for NetSpeed.me — ping, download, and upload endpoints with JSON metrics.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "license": "MIT"
+}
