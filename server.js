@@ -27,12 +27,16 @@ const MAX_UPLOAD_BYTES = 512 * 1024 * 1024; // 512 MB cap
 const BLOCK = crypto.randomBytes(65536);
 
 // ── CORS + cache headers on every response ──
+// Timing-Allow-Origin lets browsers expose Resource Timing details
+// (TCP connect, request/response phases) to the frontend, which needs
+// them to measure network latency without proxy/server overhead.
 app.use((req, res, next) => {
   res.set({
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
     "Cache-Control": "no-store, no-cache, must-revalidate",
+    "Timing-Allow-Origin": "*",
   });
   if (req.method === "OPTIONS") return res.sendStatus(204);
   next();
@@ -63,7 +67,16 @@ app.get("/", (req, res) => {
 });
 
 // ── GET /ping — latency probe ──
+// Connection: close forces each ping to open a fresh TCP connection, so
+// the browser's Resource Timing exposes the TCP handshake — one pure
+// network round trip, unaffected by per-request proxy/app processing.
+// Server-Timing reports app processing so clients can subtract it when
+// they fall back to request/response timing.
 app.get("/ping", (req, res) => {
+  const t0 = process.hrtime.bigint();
+  res.set("Connection", "close");
+  const appMs = Number(process.hrtime.bigint() - t0) / 1e6;
+  res.set("Server-Timing", `app;dur=${appMs.toFixed(2)}`);
   res.json({
     pong: true,
     serverTimestamp: Date.now(),
@@ -141,6 +154,10 @@ app.use((req, res) => {
   res.status(404).json({ error: "Not found" });
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`NetSpeed backend listening on port ${PORT}`);
 });
+
+// Disable Nagle's algorithm: small responses (ping) go out immediately
+// instead of waiting to coalesce with further writes.
+server.on("connection", (socket) => socket.setNoDelay(true));
