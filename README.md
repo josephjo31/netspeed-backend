@@ -12,6 +12,7 @@ A lightweight Express server that provides CORS-enabled endpoints for measuring 
 | `GET` | `/ping` | Latency probe — responds immediately with JSON |
 | `GET` | `/download?size=100MB` | Streams incompressible random bytes. Accepts `size` (`100MB`, `500KB`, `1GB`) or raw `bytes=N`. Default 50MB, capped at 1GB. |
 | `POST` | `/upload` | Accepts and discards a binary body (max 512MB), returns JSON metrics |
+| `WS` | `/ws` | Echo socket for latency sampling — frames are echoed back verbatim. Per-message round trips measure true network RTT, bypassing per-HTTP-request proxy overhead. |
 
 ### Example responses
 
