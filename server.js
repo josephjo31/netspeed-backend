@@ -14,6 +14,7 @@
 
 const express = require("express");
 const crypto = require("crypto");
+const { WebSocketServer } = require("ws");
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -161,3 +162,16 @@ const server = app.listen(PORT, () => {
 // Disable Nagle's algorithm: small responses (ping) go out immediately
 // instead of waiting to coalesce with further writes.
 server.on("connection", (socket) => socket.setNoDelay(true));
+
+// ── WS /ws — echo, for accurate latency sampling ──
+// HTTP requests through the hosting proxy carry ~200ms of per-request
+// processing, so HTTP-level ping over-reports latency several-fold. A
+// WebSocket pays that cost once, at upgrade; echoed frames afterwards
+// measure the actual network round trip.
+const wss = new WebSocketServer({ server, path: "/ws" });
+wss.on("connection", (socket) => {
+  socket.on("message", (data, isBinary) => {
+    socket.send(data, { binary: isBinary });
+  });
+  socket.on("error", () => socket.close());
+});
